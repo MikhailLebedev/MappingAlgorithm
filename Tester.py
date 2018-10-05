@@ -142,7 +142,6 @@ class VPATester:
     #There are two groups of terminal vertices (that is two big (border) switches). 
     #Every group consists of from 2 to 4 vertices from [48-55] and [56-63] ranges, respectively. 
     def test_data_centers(self, iter_param):
-        
         def rm_elem(lst, elem):
             new_lst = []
             for i in xrange(len(lst)):
@@ -156,9 +155,12 @@ class VPATester:
         #16 vertices per level and 8 links for every core's vertices.
         physical = construct_fattree(16,4,4)
         counter = 0
+        
+        result = [0, 0, 0, 0]
         while counter != iter_param:
             while(True):
                 f = random.choice(files)
+                print f
                 num_1 = get_node_number(directory+"/"+f)
                 if (float(num_1) <= 0.7*16*5): 
      
@@ -195,9 +197,11 @@ class VPATester:
             l.append(s_group)
             
             #start the VPA
-            self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            res = self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
             counter+=1
+            result[res] += 1
             print "_______________________________________________"
+        return result
     
 
     #Both physical and virtual topologies are topologies from TopologyZoo dataset.
@@ -214,6 +218,8 @@ class VPATester:
         files = os.listdir(directory)
         num_1 = num_2 = 0
         counter = 0
+        
+        result = [0, 0, 0, 0]
         while counter != iter_param:
             while(True):
                 f = random.choice(files)
@@ -295,15 +301,18 @@ class VPATester:
             l.append(f_group)
             l.append(s_group)
             #start the VPA
-            self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            res = self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
             counter+=1
+            result[res] += 1
             print "_______________________________________________"
+        return result
     
              
     #Both physical and virtual topologies are PLOD-like topologies.
     #There are two groups of terminal vertices (that is two big (border) switches). 
     #Every group consists of 3 manually seted vertices.
     def test_model_1(self, iter_param):
+        result = [0, 0, 0, 0]
         for i in xrange(iter_param):
             physical = PLOD_based_generator(14,50,0.5,50,100,100)  
             virtual = PLOD_based_generator(6,12,0.5,50,20,20)
@@ -315,8 +324,10 @@ class VPATester:
             l.append(f_group)
             l.append(s_group)
             #start the VPA
-            self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            res = self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            result[res] += 1
             print "_______________________________________________"
+        return result
     
     
     #Physical topology is PLOD-like topology.
@@ -324,6 +335,7 @@ class VPATester:
     #There are two groups of terminal vertices (that is two big (border) switches). 
     #Every group consists of from 2 manually seted vertices.
     def test_model_2(self, iter_param):
+        result = [0, 0, 0, 0]
         for i in xrange(iter_param):
             physical = PLOD_based_generator(14,50,0.5,50,100,100)  
             virtual = {}
@@ -338,10 +350,13 @@ class VPATester:
             do_visual_representation(physical,"physical/"+str(i))
             do_visual_representation(virtual,"virtual/"+str(i))
             f_group = [0,1]
-            s_group = [9,10]
+            #s_group = [9,10]
+            s_group = [12,13]
             l = []
             l.append(f_group)
             l.append(s_group)
             #start the VPA
-            self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            res = self.algorithm.build_virtual_to_physical_mapping(physical, virtual, l)
+            result[res] += 1
             print "_______________________________________________"
+        return result

@@ -114,15 +114,15 @@ def Recursive_Topology_Generator(vertices_number, edges_number, alpha, beta, gam
         
 #Generate the undirected graph description in .dot format
 def do_visual_representation(graph, name_of_graph):
-                f = open(name_of_graph+".dot", "w")
-                f.write("graph G{\n")
-                for i in graph:
-                        f.write(str(i)+" [label="+str(i)+"];\n")
-                for i in graph:
-                        for j in graph[i].keys():
-                                if (j>i):
-                                        f.write(str(i)+" -- "+str(j)+" [label="+str(graph[i][j])+"];\n")
-                f.write("}")
+    f = open(name_of_graph+".dot", "w")
+    f.write("graph G{\n")
+    for i in graph:
+        f.write(str(i)+" [label="+str(i)+"];\n")
+    for i in graph:
+        for j in graph[i].keys():
+            if (j>i):
+                f.write(str(i)+" -- "+str(j)+" [label="+str(graph[i][j])+"];\n")
+    f.write("}")
 
 if __name__=="__main__":
     N = int(sys.argv[1])
@@ -133,4 +133,5 @@ if __name__=="__main__":
     right_border  = 1480
     #graph = PLOD_based_generator(N,M,alpha,beta,left_border, right_border)
     graph = PLOD_based_generator(12,20,0.8,50,100,100)
+    #do_visual_representation(graph, "123")
     #graph = Recursive_Topology_Generator(20,100,0.1,0.4,0.4,0.1)

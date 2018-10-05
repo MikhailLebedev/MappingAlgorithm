@@ -5,13 +5,18 @@ import networkx as nx
 def convert_from_gml(name, val):
     graph = {}
     G = nx.read_gml(name)
-    for i in xrange(len(G.node)):
-        graph.setdefault(i,{})    
-    for k in G.edge:
-        for t in G.edge[k]: 
-            graph[k][t] = val
+    print G.edges
+    nds = []
+    for k in G.nodes:
+        nds.append(k)
+    for i in G.node:
+        graph.setdefault(nds.index(i),{})
+    for k in G.edges:
+        graph[nds.index(k[0])][nds.index(k[1])] = val
+        graph[nds.index(k[1])][nds.index(k[0])] = val
+    print graph
     for k in graph.keys():
-        print k, graph[k]
+        print "#", k, graph[k]
     return graph
 
 #Get the number of vertices in graph

@@ -39,9 +39,11 @@ class VPAlgorithm:
         #Get graphs
         if physical_network == None and virtual_network == None and listOfTerminalVertices == None:    
             self._physical_graph.get_physical_from_file("physical.txt")
+            self._free_nodes = copy.deepcopy(self._physical_graph)
             self.listOfTerminalVertices = self._virtual_graph.get_virtual_from_file("virtual.txt")
         else:
             self._physical_graph = Graph(physical_network)
+            self._free_nodes = copy.deepcopy(self._physical_graph)
             self._virtual_graph = Graph(virtual_network)
             self.listOfTerminalVertices = listOfTerminalVertices
         print "Physical graph"
@@ -49,7 +51,7 @@ class VPAlgorithm:
         print "Virtual graph"
         self._virtual_graph.print_graph()
         print "TERMINAL VERTICES:"
-        print self.listOfTerminalVertices    
+        print "\t", self.listOfTerminalVertices
         verticesForBS = set()
         count = 0 
         listForCommonNodeFinding = []
@@ -59,12 +61,74 @@ class VPAlgorithm:
         
         #Build 2-approx SMT for every group of terminal vertices
         #Set mapping Virtual Border Switch to ({physical switch},{physial link})
-
+        tver  = []
+        for x in xrange(len(self.listOfTerminalVertices)):
+            for y in self.listOfTerminalVertices[x]:
+                tver.append(y);
         for i in xrange(len(self.listOfTerminalVertices)):
             terminalVertices = self.listOfTerminalVertices[i]
-            resultSteinerTree = self._physical_graph.build_Steiner_tree_2_approxim(terminalVertices)
+            #resultSteinerTree = self._physical_graph.build_Steiner_tree_2_approxim(terminalVertices)
+            #=================================================
+            for x in terminalVertices:
+                tver.remove(x)
+            
+            
+            forest = []
+            for (key, val) in self._free_nodes._graph.items():
+                forest.append([key])
+                
+            for gn1 in set(self._free_nodes._graph):
+                for gn2 in set(self._free_nodes._graph[gn1]):
+                    for tr in forest:
+                        if (gn1 in tr):
+                            if (not(gn2 in tr)):
+                                for t in forest:
+                                    if (gn2 in t):
+                                        for k in t:
+                                            tr.append(k)
+                                        forest.remove(t)
+                                        break
+            if (len(forest) != 1):
+                for t in forest:
+                    if (terminalVertices[0] in t):
+                        for v in terminalVertices:
+                            if (not(v in t)):
+                                print "Stop. Status: Mapping couldn't be built."
+                                self.log.writelog("STOP. NOT CONNECTED GRAPH\n")
+                                self.log.writelog("--------\n")
+                                self.log.writestat(str(-1)+"\n")
+                                return 2
+            
+            
+            resultSteinerTree = self._free_nodes.build_Steiner_tree_2_approxim(terminalVertices)
+            
+            for n1 in set(resultSteinerTree):
+                for x in set(self._free_nodes._graph):
+                    for y in set(self._free_nodes._graph[x]):
+                        if (y == n1):
+                            self._free_nodes._graph[x].pop(y, None)
+                    if (x == n1 or self._free_nodes._graph[x] == {}):
+                        self._free_nodes._graph.pop(x, None)
+                        if (x in tver):
+                            print "Stop. Status: Mapping couldn't be built."
+                            print "CROSS"
+                            self.log.writelog("STOP. CROSS\n")
+                            self.log.writelog("--------\n")
+                            self.log.writestat(str(-1)+"\n")
+                            return 1
             print "Result Steiner Tree:"
-            print resultSteinerTree
+            for (key, value) in resultSteinerTree.items():
+                print "\t", key, value
+                
+            print "Free Nodes:"
+            for (key, value) in self._free_nodes._graph.items():
+                print "\t", key, value
+                
+                
+            #-----------------------
+            
+            #================================================
+            #print resultSteinerTree
             rst = Graph(resultSteinerTree)
             self.SteinerTrees[i] = rst
             tmp = {}
@@ -102,7 +166,7 @@ class VPAlgorithm:
                     self.log.writelog("]\n")
                     self.log.writelog("--------\n")
                     self.log.writestat(str(-1)+"\n")
-                    return False 
+                    return 3 
 
         #Calculate the number of free remaining physical vertices and remaining virtual vertices
         self.remainingPhyVertices = set(self._physical_graph.get_graph()).difference(verticesForBS)
@@ -111,6 +175,7 @@ class VPAlgorithm:
         self.remainingVirVertices.sort()
         for i in xrange(len(self.listOfTerminalVertices)):
             self.remainingVirVertices.pop(0)
+        return 0
 
     #Check: comparison remaining physical vertices and remaining virtual vertices. Log the state if rem. p.v < rem. v.v.
     def _second_step_checking_mapping(self):
@@ -119,7 +184,8 @@ class VPAlgorithm:
             self.log.writelog("STOP\n")
             self.log.writelog("--------\n")
             self.log.writestat(str(-1)+"\n")
-            return False
+            return 1
+        return 0
 
     #Third step: 1. Set mapping for virtual links (to physical pathes) between VBSs
     #         2. Set mapping for virtual switches (to physical switches): generate test permutation for virtual switches allocation
@@ -179,7 +245,7 @@ class VPAlgorithm:
             self.log.writelog("STOP\n")
             self.log.writelog("--------\n")
             self.log.writestat(str(-1)+"\n")
-            return False    
+            return 1
         self._physical_graph.do_reset_copy_of_graph()    
         permutation_counter = 0
         
@@ -201,7 +267,7 @@ class VPAlgorithm:
                 self.log.writelog("STOP TIMEOUT\n")
                 self.log.writelog("--------\n")
                 self.log.writestat(str(-1)+"\n")
-                return False
+                return 1
             permutation_counter += 1
             wasFound = True
             VerticesMapping = dict.fromkeys(pv)
@@ -320,7 +386,7 @@ class VPAlgorithm:
             self.log.writelog("STOP\n")
             self.log.writelog("--------\n")
             self.log.writestat(str(-1)+"\n")
-            return False
+            return 1
         else:
             state = str(permutation_counter)
             state+="/"
@@ -328,7 +394,7 @@ class VPAlgorithm:
             self.log.writelog(state)
             self.log.writelog("--------\n")
             self.log.writestat(str(permutation_counter)+"\n")
-            return True
+            return 0
 
     #Print all results    
     def _print_results(self):
@@ -342,19 +408,18 @@ class VPAlgorithm:
     #Build "virtual-to-physical" mapping consist of 3 main steps. Check 'status' after every step finishing
     def build_virtual_to_physical_mapping(self, physical_network, virtual_network, listOfTerminalVertices):
         res = self._first_step_construct_Big_switches_mapping(physical_network, virtual_network, listOfTerminalVertices)
-        if res == False:
-            self.resultVerticesMapping = None
-            return
+        if res != 0:
+            return res
+            
         res = self._second_step_checking_mapping()
-        if res == False:
-            self.resultVerticesMapping = None
-            return
+        if res != 0:
+            return res
+            
         res = self._third_step_construct_virtual_switches_and_virtual_links_mapping()
-        if res == False:
-            self.resultVerticesMapping = None
-        if res != False:
+        if res == 0:
             self._print_results()
-        return self.resultVerticesMapping, self.resultBigSwitchRouteMapping, self.resultVirtualLinksMapping
+
+        return res
     
     #Perumtation without repetition generator (in lexicographical order.    
     def _generatePermutataionsWithoutRepetition(self,lst,n):
@@ -383,20 +448,31 @@ if __name__=="__main__":
         count+=1
     print args
     log = VPALogger("logfile", "stat")
-    if args[0] == 0:
+    
+    test_amount = args[1]
+    iterations = args[2]
+    test_model = args[0]
+    
+    if test_model == 0:
         vpa = VPAlgorithm(log,1)
-    else:
-        vpa = VPAlgorithm(log,args[2])
-    tester = VPATester(log,vpa)
-    if args[0] == 0:
         vpa.build_virtual_to_physical_mapping(None,None,None)
-    elif args[0] == 1:
-        tester.test_data_centers(args[1])
-    elif args[0] == 2:
-        tester.test_enterprise(args[1])
-    elif args[0] == 3:
-        tester.test_model_1(args[1])
-    elif args[0] == 4:
-        tester.test_model_2(args[1])
+    else:
+        vpa = VPAlgorithm(log, iterations)
+        
+    tester = VPATester(log,vpa)
+        
+    if test_model == 1:
+        result = tester.test_data_centers(test_amount)
+    elif test_model == 2:
+        result = tester.test_enterprise(test_amount)
+    elif test_model == 3:
+        result = tester.test_model_1(test_amount)
+    elif test_model == 4:
+        result = tester.test_model_2(test_amount)
+        
     #tester.test_plod(50)
-    print "DONE"
+    
+    print "RESULT: ", 100.0 * result[0] / test_amount, "%" 
+    print "CROSS: ", result[1]
+    print "NOT CONNECTED: ", result[2]
+    print result[3]

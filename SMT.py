@@ -1,5 +1,7 @@
 #Source: Bang Ye Wu, Kun-Mao Chao "Steiner Minimal Tress"
 
+import sys
+
 class Graph:
     def __init__(self, graph = None):
         if graph is None:
@@ -16,10 +18,10 @@ class Graph:
     def print_graph(self):
         print "Original graph:"
         for (keys, value) in self._graph.items():
-            print keys, value
-        print "resset graph:"
-        for (keys, value) in self._reset_copy_of_graph.items():
-            print keys, value
+            print "\t", keys, value
+        #print "Reset graph:"
+        #for (keys, value) in self._reset_copy_of_graph.items():
+        #    print keys, value
 
     def get_adjacent_vertices(self, vert):
         return self._graph[vert]
@@ -55,7 +57,7 @@ class Graph:
             self._graph.setdefault(int(count),{})
             dws = []
             dwl = line.split(" ")
-            print line
+            #print line
             for t in dwl:
                 i_1 = t.index("(")
                 i_2 = t.index(")")
@@ -119,12 +121,12 @@ class Graph:
         while vertex_array:
             for vertex,d in self._graph[vertex_3].items():
                 if mode == "hops":
-                        if dist[vertex] > dist[vertex_3] + 1:
+                    if dist[vertex] > dist[vertex_3] + 1:
                         path[vertex] = vertex_3
                         dist[vertex] = dist[vertex_3] + 1
                         hops[vertex] = hops[vertex_3] + 1 
                 elif mode == "throughput":
-                        if(self._graph[vertex_3][vertex]!=0):
+                    if(self._graph[vertex_3][vertex]!=0):
                         if dist[vertex] > dist[vertex_3] + 1/float(self._graph[vertex_3][vertex]):
                             path[vertex] = vertex_3
                             dist[vertex] = dist[vertex_3] + 1/float(self._graph[vertex_3][vertex])
@@ -147,10 +149,10 @@ class Graph:
         result_dist = 0
         current = last_vertex
         result_dist+=dist[last_vertex]
-        for i in xrange(int(tmp)):                    
+        for i in xrange(int(tmp)):                
             vertex = path[current]
-                result_path.append(vertex)
-                current = path[current]
+            result_path.append(vertex)
+            current = path[current]
         result_path.reverse()
         return (result_path,result_dist)
     
@@ -173,13 +175,14 @@ class Graph:
                     metricClosureOfGraph[int(j)][int(i)] = (result_path, dist[j])
         print "Metric closure for original graph:"            
         for (keys, value) in metricClosureOfGraph.items():
-            print keys, value
+            print "\t", keys, value
         return metricClosureOfGraph
     
     #three main steps in 2 appoximately algorithm for Steiner tree
     def build_Steiner_tree_2_approxim(self, terminalVertices):
         mc = self._construct_metric_closure(terminalVertices)
-        MST = self._build_minimal_spanning_tree(mc,terminalVertices)
+        #MST = self._build_minimal_spanning_tree(mc,terminalVertices)
+        MST = self._build_minimal_spanning_tree_2(mc,terminalVertices)
         Steiner_vertices = self._construct_Steiner_tree(MST)
         return Steiner_vertices
         
@@ -205,7 +208,7 @@ class Graph:
                         path = mc[i][j][0]
             return (min,idx_1,idx_2,path)
 
-        #use Prima's algorithm for MST building
+        #use Prim's algorithm for MST building
         toVisit = []
         firstNode = mc.keys()[0]
         for i in set(mc):
@@ -223,11 +226,70 @@ class Graph:
             result_MST[j][i] = (p,w)
             MST_set.add(j)
             weights.append(w)
-        print "MST for metric closure:"
+        print "Prim MST for metric closure:"
         for k in result_MST:
-            print k, result_MST[k]
+            print "\t", k, result_MST[k]
         return result_MST
 
+
+#============= Kruskal's ====================
+
+    #function for build MST of metric closure of original graph    
+    def _build_minimal_spanning_tree_2(self, mc, terminalVertices):
+        result_MST = {};
+        forest = []
+        for i in terminalVertices:
+            forest.append([i])
+        while (len(forest) != 1):
+            flag = True
+            for i in set(mc):
+                for j in set(mc[i]):
+                    if flag:
+                        tmp = mc[i][j][0]
+                        min = mc[i][j][1]
+                        x = i
+                        y = j
+                        flag = False
+                    else:
+                        if (mc[i][j][1] < min):
+                            tmp = mc[i][j][0]
+                            min = mc[i][j][1]
+                            x = i
+                            y = j
+            
+            for i in forest:
+                if (x in i):
+                    if (y in i):
+                        print "*"
+                    else:
+                        for j in forest:
+                            if (y in j):
+                                for k in j:
+                                    i.append(k)
+                                forest.remove(j)
+                                break
+                        if (result_MST.get(x) == None):
+                            result_MST[x] = {y : (tmp, min)}
+                        else:
+                            result_MST[x].update({y : (tmp, min)})
+                        if (result_MST.get(y) == None):
+                            result_MST[y] = {x : (tmp, min)}
+                        else:
+                            result_MST[y].update({x :(tmp, min)})
+            mc[x].pop(y, None)
+            if (mc[x] == {}):
+                mc.pop(x, None)
+            mc[y].pop(x, None)
+            if (mc[y] == {}):
+                mc.pop(y, None)
+        print "Kruskal MST for metric closure:"
+        for k in result_MST:
+            print "\t", k, result_MST[k]
+        return result_MST
+
+#============================================
+
+    
     def _construct_Steiner_tree(self,MST):
         
         vertices = dict.fromkeys(MST,(0,0))
@@ -312,7 +374,7 @@ class Graph:
         for v in vertices:
             dfsVertices[vertices[v][1]]=v
         print "DFS order of vertices:"
-        print dfsVertices
+        print "\t", dfsVertices
         result_Steiner_tree = {}
         for i in xrange(len(dfsVertices)):
             t = dfsVertices[i]

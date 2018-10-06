@@ -226,7 +226,7 @@ class Graph:
             result_MST[j][i] = (p,w)
             MST_set.add(j)
             weights.append(w)
-        print "Prim MST for metric closure:"
+        print "Prim's MST for metric closure:"
         for k in result_MST:
             print "\t", k, result_MST[k]
         return result_MST
@@ -245,44 +245,43 @@ class Graph:
             for i in set(mc):
                 for j in set(mc[i]):
                     if flag:
-                        tmp = mc[i][j][0]
+                        path = mc[i][j][0]
                         min = mc[i][j][1]
                         x = i
                         y = j
                         flag = False
                     else:
                         if (mc[i][j][1] < min):
-                            tmp = mc[i][j][0]
+                            path = mc[i][j][0]
                             min = mc[i][j][1]
                             x = i
                             y = j
             
             for i in forest:
-                if (x in i):
-                    if (y in i):
-                        print "*"
+                if (x in i) and not (y in i):
+                    for j in forest:
+                        if (y in j):
+                            for k in j:
+                                i.append(k)
+                            forest.remove(j)
+                            break
+                    if (result_MST.get(x) == None):
+                        result_MST[x] = {y : (path, min)}
                     else:
-                        for j in forest:
-                            if (y in j):
-                                for k in j:
-                                    i.append(k)
-                                forest.remove(j)
-                                break
-                        if (result_MST.get(x) == None):
-                            result_MST[x] = {y : (tmp, min)}
-                        else:
-                            result_MST[x].update({y : (tmp, min)})
-                        if (result_MST.get(y) == None):
-                            result_MST[y] = {x : (tmp, min)}
-                        else:
-                            result_MST[y].update({x :(tmp, min)})
+                        result_MST[x].update({y : (path, min)})
+                    if (result_MST.get(y) == None):
+                        result_MST[y] = {x : (path, min)}
+                    else:
+                        result_MST[y].update({x :(path, min)})
+            # removing used edges from metric closure
             mc[x].pop(y, None)
             if (mc[x] == {}):
                 mc.pop(x, None)
             mc[y].pop(x, None)
             if (mc[y] == {}):
                 mc.pop(y, None)
-        print "Kruskal MST for metric closure:"
+
+        print "Kruskal's MST for metric closure:"
         for k in result_MST:
             print "\t", k, result_MST[k]
         return result_MST

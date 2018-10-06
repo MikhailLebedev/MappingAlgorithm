@@ -350,8 +350,8 @@ class VPATester:
             do_visual_representation(physical,"physical/"+str(i))
             do_visual_representation(virtual,"virtual/"+str(i))
             f_group = [0,1]
-            #s_group = [9,10]
-            s_group = [12,13]
+            s_group = [9,10]
+            #s_group = [12,13]
             l = []
             l.append(f_group)
             l.append(s_group)

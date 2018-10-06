@@ -117,6 +117,7 @@ class VPAlgorithm:
                             self.log.writestat(str(-1)+"\n")
                             return 1
             print "Result Steiner Tree:"
+            #print resultSteinerTree
             for (key, value) in resultSteinerTree.items():
                 print "\t", key, value
                 
@@ -128,7 +129,6 @@ class VPAlgorithm:
             #-----------------------
             
             #================================================
-            #print resultSteinerTree
             rst = Graph(resultSteinerTree)
             self.SteinerTrees[i] = rst
             tmp = {}

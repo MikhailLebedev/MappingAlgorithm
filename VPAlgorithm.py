@@ -15,6 +15,8 @@ class VPAlgorithm:
     def __init__(self,logger, iter_param):
         self._physical_graph = Graph()
         self._virtual_graph = Graph()
+        self._free_nodes = Graph()
+        self._free_nodes_for_build = Graph()
         self.resultVerticesMapping = {}
         self.resultBigSwitchRouteMapping = {}
         self.resultVirtualLinksMapping = {}
@@ -39,11 +41,9 @@ class VPAlgorithm:
         #Get graphs
         if physical_network == None and virtual_network == None and listOfTerminalVertices == None:    
             self._physical_graph.get_physical_from_file("physical.txt")
-            self._free_nodes = copy.deepcopy(self._physical_graph)
             self.listOfTerminalVertices = self._virtual_graph.get_virtual_from_file("virtual.txt")
         else:
             self._physical_graph = Graph(physical_network)
-            self._free_nodes = copy.deepcopy(self._physical_graph)
             self._virtual_graph = Graph(virtual_network)
             self.listOfTerminalVertices = listOfTerminalVertices
         print "Physical graph"
@@ -58,36 +58,55 @@ class VPAlgorithm:
 
         self.resultVerticesMapping = {}
         self.listOfTerminalVertices_backup = copy.deepcopy(self.listOfTerminalVertices)
-        
-        #Build 2-approx SMT for every group of terminal vertices
-        #Set mapping Virtual Border Switch to ({physical switch},{physial link})
+
+        #=============== MODIFICATION BLOCK START ======================
+        self._free_nodes = copy.deepcopy(self._physical_graph)
+        # List of all terminal vertices which cant be used on current step of MST building
         tver  = []
         for x in xrange(len(self.listOfTerminalVertices)):
             for y in self.listOfTerminalVertices[x]:
                 tver.append(y);
+        #=============== MODIFICATION BLOCK END ======================
+
+        #Build 2-approx SMT for every group of terminal vertices
+        #Set mapping Virtual Border Switch to ({physical switch},{physial link})
         for i in xrange(len(self.listOfTerminalVertices)):
             terminalVertices = self.listOfTerminalVertices[i]
             #resultSteinerTree = self._physical_graph.build_Steiner_tree_2_approxim(terminalVertices)
-            #=================================================
+
+        #=============== MODIFICATION BLOCK START ======================
             for x in terminalVertices:
                 tver.remove(x)
-            
-            
+            self._free_nodes_for_build = copy.deepcopy(self._free_nodes)
+
+            for tv in tver:
+                for x in set(self._free_nodes_for_build._graph):
+                    for y in set(self._free_nodes_for_build._graph[x]):
+                        if (y == tv):
+                            self._free_nodes_for_build._graph[x].pop(y, None)
+                    if (x == tv or self._free_nodes_for_build._graph[x] == {}):
+                        self._free_nodes_for_build._graph.pop(x, None)
+                        if (x in terminalVertices):
+                            print "Stop. Status: Mapping couldn't be built."
+                            self.log.writelog("STOP. NOT CONNECTED GRAPH\n")
+                            self.log.writelog("--------\n")
+                            self.log.writestat(str(-1)+"\n")
+                            return 2
+
             forest = []
-            for (key, val) in self._free_nodes._graph.items():
+            for (key, val) in self._free_nodes_for_build._graph.items():
                 forest.append([key])
-                
-            for gn1 in set(self._free_nodes._graph):
-                for gn2 in set(self._free_nodes._graph[gn1]):
+
+            for graph_node_i in set(self._free_nodes_for_build._graph):
+                for graph_node_j in set(self._free_nodes_for_build._graph[graph_node_i]):
                     for tr in forest:
-                        if (gn1 in tr):
-                            if (not(gn2 in tr)):
-                                for t in forest:
-                                    if (gn2 in t):
-                                        for k in t:
-                                            tr.append(k)
-                                        forest.remove(t)
-                                        break
+                        if (graph_node_i in tr) and not (graph_node_j in tr):
+                            for t in forest:
+                                if (graph_node_j in t):
+                                    for k in t:
+                                        tr.append(k)
+                                    forest.remove(t)
+                                    break
             if (len(forest) != 1):
                 for t in forest:
                     if (terminalVertices[0] in t):
@@ -98,10 +117,17 @@ class VPAlgorithm:
                                 self.log.writelog("--------\n")
                                 self.log.writestat(str(-1)+"\n")
                                 return 2
-            
-            
-            resultSteinerTree = self._free_nodes.build_Steiner_tree_2_approxim(terminalVertices)
-            
+
+            resultSteinerTree = self._free_nodes_for_build.build_Steiner_tree_2_approxim(terminalVertices)
+            # Print resultSteinerTree
+            print "Result Steiner Tree:"
+            for (key, value) in resultSteinerTree.items():
+                print "\t", key, value
+            print "Free Nodes:"
+            for (key, value) in self._free_nodes._graph.items():
+                print "\t", key, value
+
+
             for n1 in set(resultSteinerTree):
                 for x in set(self._free_nodes._graph):
                     for y in set(self._free_nodes._graph[x]):
@@ -111,24 +137,15 @@ class VPAlgorithm:
                         self._free_nodes._graph.pop(x, None)
                         if (x in tver):
                             print "Stop. Status: Mapping couldn't be built."
-                            print "CROSS"
+                            print "CROSS !!!"
                             self.log.writelog("STOP. CROSS\n")
                             self.log.writelog("--------\n")
                             self.log.writestat(str(-1)+"\n")
-                            return 1
-            print "Result Steiner Tree:"
-            #print resultSteinerTree
-            for (key, value) in resultSteinerTree.items():
-                print "\t", key, value
-                
-            print "Free Nodes:"
-            for (key, value) in self._free_nodes._graph.items():
-                print "\t", key, value
-                
-                
-            #-----------------------
+                            return 3
+
             
-            #================================================
+            #=============== MODIFICATION BLOCK END ======================
+
             rst = Graph(resultSteinerTree)
             self.SteinerTrees[i] = rst
             tmp = {}
@@ -472,7 +489,7 @@ if __name__=="__main__":
         
     #tester.test_plod(50)
     
-    print "RESULT: ", 100.0 * result[0] / test_amount, "%" 
-    print "CROSS: ", result[1]
-    print "NOT CONNECTED: ", result[2]
-    print result[3]
+    print "RESULT: ", result[0], " successeful from ", test_amount, " tests - ", 100.0 * result[0] / test_amount, "%" 
+    print "TYPE 1: ", result[1]
+    print "TYPE 2: ", result[2]
+    print "TYPE 3: ", result[3]

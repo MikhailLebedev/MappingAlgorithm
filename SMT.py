@@ -16,12 +16,17 @@ class Graph:
 
     #debug print of graph
     def print_graph(self):
-        print "Original graph:"
+        #print "Original graph:"
         for (keys, value) in self._graph.items():
             print "\t", keys, value
         #print "Reset graph:"
         #for (keys, value) in self._reset_copy_of_graph.items():
         #    print keys, value
+
+    def to_string(self):
+        for (keys, value) in self._graph.items():
+            str += str(keys) + " " + str(value)
+        return str
 
     def get_adjacent_vertices(self, vert):
         return self._graph[vert]
@@ -124,7 +129,7 @@ class Graph:
                     if dist[vertex] > dist[vertex_3] + 1:
                         path[vertex] = vertex_3
                         dist[vertex] = dist[vertex_3] + 1
-                        hops[vertex] = hops[vertex_3] + 1 
+                        hops[vertex] = hops[vertex_3] + 1
                 elif mode == "throughput":
                     if(self._graph[vertex_3][vertex]!=0):
                         if dist[vertex] > dist[vertex_3] + 1/float(self._graph[vertex_3][vertex]):

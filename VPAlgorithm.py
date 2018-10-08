@@ -119,13 +119,13 @@ class VPAlgorithm:
                                 return 2
 
             resultSteinerTree = self._free_nodes_for_build.build_Steiner_tree_2_approxim(terminalVertices)
+
             # Print resultSteinerTree
             print "Result Steiner Tree:"
             for (key, value) in resultSteinerTree.items():
                 print "\t", key, value
             print "Free Nodes:"
-            for (key, value) in self._free_nodes._graph.items():
-                print "\t", key, value
+            self._free_nodes.print_graph()
 
 
             for n1 in set(resultSteinerTree):
